@@ -1,0 +1,173 @@
+{
+    "generic": {
+        "server-error": "Ett oväntat fel har uppstått"
+    },
+    "recipe": {
+        "unique-name-error": "Receptnamn måste vara unika",
+        "recipe-created": "Recept skapat",
+        "made-this-as-side": "{name} lagade det här som tillbehör",
+        "made-this-for-breakfast": "{name} lagade det här till frukost",
+        "made-this-for-lunch": "{name} lagade det här till lunch",
+        "made-this-for-dinner": "{name} lagade det här till middag",
+        "made-this-for-snack": "{name} lagade det här till mellanmål",
+        "made-this-for-drink": "{name} gjorde det här som dryck",
+        "made-this-for-dessert": "{name} lagade det här till efterrätt",
+        "recipe-image-deleted": "Receptbild borttagen",
+        "recipe-defaults": {
+            "name": "Nytt recept"
+        },
+        "servings-text": {
+            "makes": "Räcker till",
+            "serves": "Personer",
+            "serving": "Portion",
+            "servings": "Portioner",
+            "yield": "Mängd",
+            "yields": "Mängd"
+        },
+        "and-amount": "och {amount}",
+        "pdf": {
+            "cookbook": "Cookbook",
+            "contents": "Contents",
+            "ingredients": "Ingredients",
+            "instructions": "Instructions",
+            "notes": "Notes",
+            "prep-time": "Prep",
+            "cook-time": "Cook",
+            "total-time": "Total"
+        },
+        "import-errors": {
+            "ai-not-enabled": "AI-tjänster är inte aktiverade",
+            "ai-request-failed": "AI-leverantören kunde inte slutföra begäran. Försök igen",
+            "image-provider-not-enabled": "AI-bildtjänster är inte aktiverade",
+            "invalid-universalrecipes-export": "Det här ser ut som ett recept som exporterats från UniversalRecipes, men det gick inte att importera",
+            "no-recipe-found": "Inget recept hittades i den angivna källan",
+            "no-source": "Innehåll, bilder och webbadress saknas",
+            "provider-returned-nothing": "AI-leverantören gav inget recept som svar",
+            "unknown-error": "Något gick fel när receptet skulle skapas. Försök igen",
+            "unreadable-source": "Det gick inte att läsa något innehåll från den angivna källan",
+            "video-download-failed": "Det gick inte att ladda ned videon. Den kan vara privat eller borttagen, eller så stöds inte webbplatsen."
+        },
+        "create-progress": {
+            "creating-recipe": "Skapar recept...",
+            "creating-recipe-from-transcript-with-ai": "Skapar ett recept med AI utifrån transkriberingen...",
+            "creating-recipe-from-webpage-data": "Skapar ett recept utifrån uppgifterna på webbsidan...",
+            "downloading-image": "Laddar ned bild...",
+            "downloading-video": "Laddar ned video...",
+            "enriching-instructions": "Adding step details...",
+            "extracting-recipe-data": "Läser ut receptuppgifter...",
+            "fetching-webpage": "Hämtar webbsidan...",
+            "organizing-recipe": "Organiserar recept...",
+            "reading-images-with-ai": "Läser bilder med AI...",
+            "reading-source-with-ai": "Läser källa med AI...",
+            "transcribing-audio-with-ai": "Transkriberar ljud med hjälp av AI...",
+            "translating-recipe": "Översätter recept..."
+        }
+    },
+    "mealplan": {
+        "no-recipes-match-your-rules": "Inga recept matchar dina regler",
+        "entry-type": {
+            "breakfast": "frukost",
+            "lunch": "lunch",
+            "dinner": "middag",
+            "side": "tillbehör",
+            "snack": "mellanmål",
+            "drink": "dryck",
+            "dessert": "efterrätt"
+        }
+    },
+    "user": {
+        "user-updated": "Användare uppdaterad",
+        "password-updated": "Lösenord uppdaterat",
+        "invalid-current-password": "Det nuvarande lösenordet är felaktigt",
+        "ldap-update-password-unavailable": "Det går inte att ändra lösenordet eftersom kontot hanteras via LDAP"
+    },
+    "group": {
+        "report-deleted": "Rapport borttagen."
+    },
+    "exceptions": {
+        "permission-denied": "Du har inte behörighet att göra detta",
+        "recursive-recipe-link": "Ett recept får inte hänvisa till sig självt, vare sig direkt eller via andra recept",
+        "no-entry-found": "Den begärda resursen hittades inte",
+        "rate-limit-error": "AI-leverantören begränsar antalet förfrågningar. Vänta en stund och försök igen",
+        "integrity-error": "Integritetsfel i databasen",
+        "username-conflict-error": "Detta användarnamn är upptaget",
+        "email-conflict-error": "E-postadressen används redan"
+    },
+    "notifications": {
+        "generic-created": "{name} skapades",
+        "generic-updated": "{name} uppdaterades",
+        "generic-created-with-url": "{name} har skapats, {url}",
+        "generic-updated-with-url": "{name} har uppdaterats, {url}",
+        "generic-duplicated": "{name} har duplicerats",
+        "generic-deleted": "{name} har tagits bort",
+        "logged-out": "Utloggad",
+        "event-title": {
+            "test-message": "Testmeddelande",
+            "webhook-task": "Webhook-uppgift",
+            "recipe-created": "Recept skapat",
+            "recipe-updated": "Recept uppdaterat",
+            "recipe-deleted": "Recept borttaget",
+            "user-signup": "Ny användare registrerad",
+            "data-migrations": "Datamigreringar",
+            "data-export": "Dataexport",
+            "data-import": "Dataimport",
+            "mealplan-entry-created": "Ny post i måltidsplanen",
+            "mealplan-entry-updated": "Post uppdaterad i måltidsplanen",
+            "mealplan-entry-deleted": "Post borttagen från måltidsplanen",
+            "shopping-list-created": "Inköpslista skapad",
+            "shopping-list-updated": "Inköpslista uppdaterad",
+            "shopping-list-deleted": "Inköpslista borttagen",
+            "cookbook-created": "Kokbok skapad",
+            "cookbook-updated": "Kokbok uppdaterad",
+            "cookbook-deleted": "Kokbok borttagen",
+            "tag-created": "Tagg skapad",
+            "tag-updated": "Tagg uppdaterad",
+            "tag-deleted": "Tagg borttagen",
+            "category-created": "Kategori skapad",
+            "category-updated": "Kategori uppdaterad",
+            "category-deleted": "Kategori borttagen",
+            "label-created": "Etikett skapad",
+            "label-updated": "Etikett uppdaterad",
+            "label-deleted": "Etikett borttagen"
+        },
+        "test-message-body": "Det här är en testavisering från UniversalRecipes.",
+        "mealplan-entry-created": "En post för {entry_type} den {date} har lagts till i måltidsplanen.",
+        "mealplan-entry-updated": "Posten för {entry_type} den {date} har uppdaterats i måltidsplanen.",
+        "mealplan-entry-deleted": "Posten för {entry_type} den {date} har tagits bort från måltidsplanen.",
+        "mealplan-range-entry-created": "En post för {entry_type} under perioden {date}–{end_date} har lagts till i måltidsplanen.",
+        "mealplan-range-entry-updated": "Posten för {entry_type} under perioden {date}–{end_date} har uppdaterats i måltidsplanen.",
+        "mealplan-range-entry-deleted": "Posten för {entry_type} under perioden {date}–{end_date} har tagits bort från måltidsplanen."
+    },
+    "datetime": {
+        "year": "år|år",
+        "day": "dag|dagar",
+        "hour": "timme|timmar",
+        "minute": "minut|minuter",
+        "second": "sekund|sekunder",
+        "millisecond": "millisekund|millisekunder",
+        "microsecond": "mikrosekund|mikrosekunder"
+    },
+    "emails": {
+        "password": {
+            "subject": "Återställ ditt lösenord för UniversalRecipes",
+            "header_text": "Glömt lösenordet?",
+            "message_top": "Du har begärt att få återställa ditt lösenord.",
+            "message_bottom": "Klicka på knappen ovan för att återställa ditt lösenord.",
+            "button_text": "Återställ lösenordet"
+        },
+        "invitation": {
+            "subject": "Inbjudan till UniversalRecipes",
+            "header_text": "Du är inbjuden!",
+            "message_top": "Du har blivit inbjuden till UniversalRecipes.",
+            "message_bottom": "Klicka på knappen ovan för att acceptera inbjudan.",
+            "button_text": "Acceptera inbjudan"
+        },
+        "test": {
+            "subject": "Testmeddelande från UniversalRecipes",
+            "header_text": "Testmeddelande",
+            "message_top": "Det här är ett testmeddelande.",
+            "message_bottom": "Klicka på knappen ovan för att testa e-posten.",
+            "button_text": "Öppna UniversalRecipes"
+        }
+    }
+}

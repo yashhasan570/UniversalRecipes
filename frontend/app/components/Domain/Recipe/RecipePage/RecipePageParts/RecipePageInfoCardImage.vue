@@ -1,0 +1,91 @@
+<template>
+  <v-img
+    :key="imageKey"
+    :max-width="maxWidth"
+    min-height="50"
+    cover
+    width="100%"
+    :height="hideImage ? undefined : imageHeight"
+    :src="recipeImageUrl"
+    class="d-print-none"
+    :style="hideImage ? undefined : 'cursor: zoom-in'"
+    v-bind="$attrs"
+    @error="hideImage = true"
+    @click="openLightbox"
+  />
+  <RecipeImageLightbox
+    v-if="lightboxOpen"
+    v-model="lightboxOpen"
+    v-model:index="lightboxIndex"
+    :items="lightboxItems"
+  />
+</template>
+
+<script setup lang="ts">
+import { useStaticRoutes, useUserApi } from "~/composables/api";
+import type { HouseholdSummary } from "~/lib/api/types/household";
+import { usePageState, usePageUser } from "~/composables/recipe-page/shared-state";
+import { useRecipeLightboxItems } from "~/composables/recipe-page/use-recipe-lightbox-items";
+import type { RecipeOut } from "~/lib/api/types/recipe";
+
+interface Props {
+  recipe: RecipeOut;
+  maxWidth?: string;
+}
+const props = withDefaults(defineProps<Props>(), {
+  maxWidth: undefined,
+});
+
+const display = useDisplay();
+const { recipeImage, recipeSmallImage } = useStaticRoutes();
+const { imageKey } = usePageState(props.recipe.slug);
+const { user } = usePageUser();
+
+const recipeHousehold = ref<HouseholdSummary>();
+if (user) {
+  const userApi = useUserApi();
+  userApi.households.getOne(props.recipe.householdId).then(({ data }) => {
+    recipeHousehold.value = data || undefined;
+  });
+}
+
+const hideImage = ref(false);
+const lightboxOpen = ref(false);
+const lightboxIndex = ref(0);
+
+const { buildItems } = useRecipeLightboxItems();
+const lightboxItems = computed(() => buildItems(props.recipe.id, {
+  heroUrl: recipeFullImageUrl.value,
+  heroAlt: props.recipe.name,
+  assets: props.recipe.assets,
+}));
+
+function openLightbox() {
+  if (hideImage.value) {
+    return;
+  }
+  lightboxIndex.value = 0;
+  lightboxOpen.value = true;
+}
+
+const imageHeight = computed(() => {
+  return display.xs.value ? "200" : "400";
+});
+
+const recipeFullImageUrl = computed(() => {
+  return recipeImage(props.recipe.id, props.recipe.image, imageKey.value);
+});
+
+const recipeImageUrl = computed(() => {
+  return display.smAndDown.value
+    ? recipeSmallImage(props.recipe.id, props.recipe.image, imageKey.value)
+    : recipeFullImageUrl.value;
+});
+
+watch(
+  () => recipeImageUrl.value,
+  () => {
+    hideImage.value = false;
+  },
+);
+</script>

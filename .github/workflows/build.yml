@@ -1,0 +1,24 @@
+name: Build
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Syntax check backend
+        run: python -m compileall -q universalrecipes
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install frontend deps
+        run: |
+          cd frontend
+          npm i -g pnpm@9
+          pnpm install --frozen-lockfile
+      - name: Lint frontend
+        run: cd frontend && pnpm typecheck

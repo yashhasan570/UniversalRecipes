@@ -1,0 +1,56 @@
+from functools import cached_property
+
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+
+from universalrecipes.db.models.household.cookbook import CookBook
+from universalrecipes.repos.all_repositories import get_repositories
+from universalrecipes.repos.repository_generic import RepositoryGeneric
+from universalrecipes.repos.repository_recipes import RepositoryRecipes
+from universalrecipes.routes._base import BaseCrudController
+from universalrecipes.routes._base.mixins import HttpRepo
+from universalrecipes.schema.cookbook.cookbook import CookBookOut
+from universalrecipes.schema.recipe import RecipeOut
+from universalrecipes.schema.recipe.recipe import (
+    RecipeCreate,
+)
+from universalrecipes.services.recipe.recipe_service import RecipeService
+
+
+class JSONBytes(JSONResponse):
+    """
+    JSONBytes overrides the render method to return the bytes instead of a string.
+    You can use this when you want to use orjson and bypass the jsonable_encoder
+    """
+
+    media_type = "application/json"
+
+    def render(self, content: bytes) -> bytes:
+        return content
+
+
+class FormatResponse(BaseModel):
+    jjson: list[str] = Field(..., alias="json")
+    zip: list[str]
+
+
+class BaseRecipeController(BaseCrudController):
+    @cached_property
+    def recipes(self) -> RepositoryRecipes:
+        return self.repos.recipes
+
+    @cached_property
+    def group_recipes(self) -> RepositoryRecipes:
+        return get_repositories(self.session, group_id=self.group_id, household_id=None).recipes
+
+    @cached_property
+    def group_cookbooks(self) -> RepositoryGeneric[CookBookOut, CookBook]:
+        return get_repositories(self.session, group_id=self.group_id, household_id=None).cookbooks
+
+    @cached_property
+    def service(self) -> RecipeService:
+        return RecipeService(self.repos, self.user, self.household, translator=self.translator)
+
+    @cached_property
+    def mixins(self):
+        return HttpRepo[RecipeCreate, RecipeOut, RecipeOut](self.recipes, self.logger)

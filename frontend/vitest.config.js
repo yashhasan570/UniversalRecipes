@@ -1,0 +1,49 @@
+import path from "path";
+import vue from "@vitejs/plugin-vue";
+import AutoImport from "unplugin-auto-import/vite";
+
+export default {
+  plugins: [
+    vue(),
+    AutoImport({
+      imports: ["vue", "@vueuse/core", "vue-i18n"],
+      dts: false,
+    }),
+  ],
+  test: {
+    server: {
+      deps: {
+        inline: ["vuetify"],
+      },
+    },
+    globals: true,
+    environment: "jsdom",
+    // Node 25+ defines its own global localStorage, which is undefined without --localstorage-file
+    // and hides the jsdom one.
+    execArgv: ["--no-experimental-webstorage"],
+    setupFiles: ["./app/tests/setup.ts"],
+    coverage: {
+      provider: "v8",
+      include: ["app/{lib,components,composables,layouts,pages}/**/*.{ts,tsx,vue}"],
+      exclude: [
+        "**/*.test.*",
+        "node_modules/**",
+        "dist/**",
+        "coverage/**",
+        "**/__tests__/**",
+        "app/lib/icons/**",
+        "app/lib/api/types/**",
+      ],
+      reporter: ["html", "text-summary"],
+      all: true,
+    },
+  },
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./app"),
+      "~": path.resolve(__dirname, "./app"),
+      "@@": path.resolve(__dirname, "."),
+      "~~": path.resolve(__dirname, "."),
+    },
+  },
+};

@@ -1,0 +1,148 @@
+from functools import cached_property
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import UUID4
+
+from universalrecipes.repos.all_repositories import get_repositories
+from universalrecipes.routes._base import BaseCrudController, controller
+from universalrecipes.routes._base.mixins import HttpRepo
+from universalrecipes.routes._base.permissions import Perm, require
+from universalrecipes.schema import mapper
+from universalrecipes.schema.recipe import CategoryWithRecipes
+from universalrecipes.schema.recipe.recipe_organizers import (
+    CategoryCreate,
+    CategoryOut,
+    CategoryPagination,
+    CategorySave,
+    OrganizerMerge,
+)
+from universalrecipes.schema.response.pagination import PaginationQuery
+from universalrecipes.services import urls
+from universalrecipes.services.event_bus_service.event_types import EventCategoryData, EventOperation, EventTypes
+
+router = APIRouter(prefix="/categories", tags=["Organizer: Categories"])
+
+
+@controller(router)
+class RecipeCategoryController(BaseCrudController):
+    # =========================================================================
+    # CRUD Operations
+    @cached_property
+    def repo(self):
+        return self.repos.categories
+
+    @cached_property
+    def mixins(self):
+        return HttpRepo[CategorySave, CategoryOut, CategorySave](self.repo, self.logger)
+
+    @router.get("", response_model=CategoryPagination)
+    def get_all(self, q: PaginationQuery = Depends(PaginationQuery), search: str | None = None):
+        """Returns a list of available categories in the database"""
+        response = self.repo.page_all(
+            pagination=q,
+            override=CategoryOut,
+            search=search,
+        )
+
+        response.set_pagination_guides(router.url_path_for("get_all"), q.model_dump())
+        return response
+
+    @router.post("", response_model=CategoryOut, status_code=201, dependencies=[require(Perm.GROUP_ORGANIZE)])
+    def create_one(self, category: CategoryCreate):
+        """Creates a Category in the database"""
+        save_data = mapper.cast(category, CategorySave, group_id=self.group_id)
+        new_category = self.mixins.create_one(save_data)
+        if new_category:
+            self.publish_event(
+                event_type=EventTypes.category_created,
+                document_data=EventCategoryData(operation=EventOperation.create, category_id=new_category.id),
+                group_id=new_category.group_id,
+                household_id=None,
+                message=self.t(
+                    "notifications.generic-created-with-url",
+                    name=new_category.name,
+                    url=urls.category_url(new_category.slug, self.settings.BASE_URL),
+                ),
+            )
+
+        return new_category
+
+    @router.get("/empty", response_model=list[CategoryOut])
+    def get_all_empty(self):
+        """Returns a list of categories that do not contain any recipes"""
+        return self.repos.categories.get_empty()
+
+    @router.post("/merge", response_model=CategoryOut, dependencies=[require(Perm.GROUP_ORGANIZE)])
+    def merge_categories(self, body: OrganizerMerge):
+        """Merges the from_id category into the to_id category, then deletes from_id."""
+        if body.from_id == body.to_id:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "from_id and to_id must be different")
+
+        if not self.repos.categories.get_one(body.from_id):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "from_id category not found")
+        if not self.repos.categories.get_one(body.to_id):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "to_id category not found")
+
+        return self.repos.categories.merge(body.from_id, body.to_id)
+
+    @router.get("/{item_id}", response_model=CategoryOut)
+    def get_one(self, item_id: UUID4):
+        return self.mixins.get_one(item_id)
+
+    @router.put("/{item_id}", response_model=CategoryOut, dependencies=[require(Perm.GROUP_ORGANIZE)])
+    def update_one(self, item_id: UUID4, update_data: CategoryCreate):
+        """Updates an existing Category in the database"""
+        save_data = mapper.cast(update_data, CategorySave, group_id=self.group_id)
+        category = self.mixins.update_one(save_data, item_id)
+
+        if category:
+            self.publish_event(
+                event_type=EventTypes.category_updated,
+                document_data=EventCategoryData(operation=EventOperation.update, category_id=category.id),
+                group_id=category.group_id,
+                household_id=None,
+                message=self.t(
+                    "notifications.generic-updated-with-url",
+                    name=category.name,
+                    url=urls.category_url(category.slug, self.settings.BASE_URL),
+                ),
+            )
+
+        return category
+
+    @router.delete("/{item_id}", dependencies=[require(Perm.GROUP_ORGANIZE)])
+    def delete_one(self, item_id: UUID4):
+        """
+        Removes a recipe category from the database. Deleting a
+        category does not impact a recipe. The category will be removed
+        from any recipes that contain it
+        """
+        if category := self.mixins.delete_one(item_id):
+            self.publish_event(
+                event_type=EventTypes.category_deleted,
+                document_data=EventCategoryData(operation=EventOperation.delete, category_id=category.id),
+                group_id=category.group_id,
+                household_id=None,
+                message=self.t("notifications.generic-deleted", name=category.name),
+            )
+
+    # =========================================================================
+    # Read All Operations
+
+    @router.get("/slug/{category_slug}", response_model=CategoryWithRecipes)
+    def get_one_by_slug(self, category_slug: str):
+        """Returns a category object with the associated recieps relating to the category"""
+        category: CategoryOut = self.mixins.get_one(category_slug, "slug")
+
+        group_recipes = get_repositories(self.repos.session, group_id=self.group_id, household_id=None).recipes
+        recipe_data = group_recipes.page_all(
+            PaginationQuery(per_page=-1, query_filter=f'recipe_category.id IN ["{category.id}"]')
+        )
+
+        return CategoryWithRecipes(
+            id=category.id,
+            group_id=category.group_id,
+            slug=category.slug,
+            name=category.name,
+            recipes=recipe_data.items,
+        )

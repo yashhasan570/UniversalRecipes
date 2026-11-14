@@ -1,0 +1,112 @@
+from pathlib import Path
+
+from pydantic import UUID4
+
+from universalrecipes.core.exceptions import NoEntryFound, UnexpectedNone
+from universalrecipes.repos.repository_factory import AllRepositories
+from universalrecipes.schema.group.group_exports import GroupDataExport
+from universalrecipes.schema.recipe import RecipeOut
+from universalrecipes.schema.recipe.recipe_organizers import CategoryDraft, TagDraft
+from universalrecipes.schema.recipe.recipe_settings import RecipeSettings
+from universalrecipes.schema.response.pagination import PaginationQuery
+from universalrecipes.schema.user.user import GroupOut, PrivateUser
+from universalrecipes.services._base_service import BaseService
+from universalrecipes.services.exporter import Exporter, RecipeExporter
+
+
+class RecipeBulkActionsService(BaseService):
+    def __init__(self, repos: AllRepositories, user: PrivateUser, group: GroupOut):
+        self.repos = repos
+        self.user = user
+        self.group = group
+        super().__init__()
+
+    def export_recipes(self, temp_path: Path, slugs: list[str]) -> None:
+        recipe_exporter = RecipeExporter(self.repos, self.group.id, slugs)
+        exporter = Exporter(self.group.id, temp_path, [recipe_exporter])
+
+        exporter.run(self.repos)
+
+    def get_exports(self) -> list[GroupDataExport]:
+        exports_page = self.repos.group_exports.page_all(PaginationQuery(per_page=-1))
+        return exports_page.items
+
+    def get_export(self, id: UUID4) -> GroupDataExport | None:
+        return self.repos.group_exports.get_one(id)
+
+    def purge_exports(self) -> int:
+        all_exports = self.get_exports()
+
+        exports_deleted = 0
+        for export in all_exports:
+            try:
+                Path(export.path).unlink(missing_ok=True)
+                self.repos.group_exports.delete(export.id)
+                exports_deleted += 1
+            except Exception as e:
+                self.logger.error(f"Failed to delete export {export.id}")
+                self.logger.error(e)
+
+        group = self.repos.groups.get_one(self.group.id)
+
+        if group is None:
+            raise UnexpectedNone("Failed to purge exports for group, no group found")
+
+        for match in group.directory.glob("**/export/*zip"):
+            if match.is_file():
+                match.unlink()
+                exports_deleted += 1
+
+        return exports_deleted
+
+    def _get_recipes(self, slugs: list[str]) -> list[RecipeOut]:
+        """Look up every recipe before any write, so a missing slug changes nothing."""
+        recipes: list[RecipeOut] = []
+        missing: list[str] = []
+        for slug in slugs:
+            recipe = self.repos.recipes.get_one(slug)
+            if recipe is None:
+                missing.append(slug)
+            else:
+                recipes.append(recipe)
+
+        if missing:
+            raise NoEntryFound(f"Recipes not found: {', '.join(missing)}")
+
+        return recipes
+
+    def set_settings(self, recipes: list[str], settings: RecipeSettings) -> None:
+        for recipe in self._get_recipes(recipes):
+            if recipe.settings is None:
+                raise UnexpectedNone(f"Failed to set settings for recipe {recipe.slug}, no settings found")
+
+            settings.locked = recipe.settings.locked
+            recipe.settings = settings
+
+            try:
+                self.repos.recipes.update(recipe.slug, recipe)
+            except Exception as e:
+                self.logger.error(f"Failed to set settings for recipe {recipe.slug}")
+                self.logger.error(e)
+
+    def assign_tags(self, recipes: list[str], tags: list[TagDraft]) -> None:
+        for recipe in self._get_recipes(recipes):
+            data = recipe.model_dump()
+            data["tags"] += [tag.model_dump() for tag in tags]
+
+            try:
+                self.repos.recipes.update(recipe.slug, data)
+            except Exception as e:
+                self.logger.error(f"Failed to tag recipe {recipe.slug}")
+                self.logger.error(e)
+
+    def assign_categories(self, recipes: list[str], categories: list[CategoryDraft]) -> None:
+        for recipe in self._get_recipes(recipes):
+            data = recipe.model_dump()
+            data["recipe_category"] += [category.model_dump() for category in categories]
+
+            try:
+                self.repos.recipes.update(recipe.slug, data)
+            except Exception as e:
+                self.logger.error(f"Failed to categorize recipe {recipe.slug}")
+                self.logger.error(e)

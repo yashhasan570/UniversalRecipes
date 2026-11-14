@@ -1,0 +1,162 @@
+from collections import defaultdict
+from functools import cached_property
+from uuid import UUID
+
+from fastapi import APIRouter, Depends
+from pydantic import UUID4
+from starlette.responses import FileResponse
+
+from universalrecipes.core.exceptions import universalrecipes_registered_exceptions
+from universalrecipes.repos.all_repositories import get_repositories
+from universalrecipes.routes._base import BaseCrudController, controller
+from universalrecipes.routes._base.mixins import HttpRepo
+from universalrecipes.routes._base.pdf import pdf_file_response
+from universalrecipes.routes._base.permissions import not_found
+from universalrecipes.routes._base.routers import UniversalRecipesCrudRoute
+from universalrecipes.schema import mapper
+from universalrecipes.schema.cookbook import CookBookCreate, CookBookOut, CookBookSave, CookBookUpdate
+from universalrecipes.schema.cookbook.cookbook import CookBookPagination
+from universalrecipes.schema.response.pagination import PaginationQuery
+from universalrecipes.services.event_bus_service.event_types import (
+    EventCookbookBulkData,
+    EventCookbookData,
+    EventOperation,
+    EventTypes,
+)
+from universalrecipes.services.recipe.recipe_pdf_service import RecipePdfRenderer, render_cookbook_pdf
+
+router = APIRouter(prefix="/households/cookbooks", tags=["Households: Cookbooks"], route_class=UniversalRecipesCrudRoute)
+
+
+@controller(router)
+class GroupCookbookController(BaseCrudController):
+    @cached_property
+    def cookbooks(self):
+        return self.repos.cookbooks
+
+    @cached_property
+    def group_cookbooks(self):
+        return get_repositories(self.session, group_id=self.group_id, household_id=None).cookbooks
+
+    def registered_exceptions(self, ex: type[Exception]) -> str:
+        registered = {
+            **universalrecipes_registered_exceptions(self.translator),
+        }
+        return registered.get(ex, self.t("generic.server-error"))
+
+    @cached_property
+    def mixins(self):
+        return HttpRepo[CookBookCreate, CookBookOut, CookBookUpdate](
+            self.cookbooks,
+            self.logger,
+            self.registered_exceptions,
+        )
+
+    @router.get("", response_model=CookBookPagination)
+    def get_all(self, q: PaginationQuery = Depends(PaginationQuery)):
+        # Fetch all cookbooks for the group, rather than the household
+        response = self.group_cookbooks.page_all(
+            pagination=q,
+            override=CookBookOut,
+        )
+
+        response.set_pagination_guides(router.url_path_for("get_all"), q.model_dump())
+        return response
+
+    @router.post("", response_model=CookBookOut, status_code=201)
+    def create_one(self, data: CookBookCreate):
+        data = mapper.cast(data, CookBookSave, group_id=self.group_id, household_id=self.household_id)
+        cookbook = self.mixins.create_one(data)
+
+        if cookbook:
+            self.publish_event(
+                event_type=EventTypes.cookbook_created,
+                document_data=EventCookbookData(operation=EventOperation.create, cookbook_id=cookbook.id),
+                group_id=cookbook.group_id,
+                household_id=cookbook.household_id,
+                message=self.t("notifications.generic-created", name=cookbook.name),
+            )
+
+        return cookbook
+
+    @router.put("", response_model=list[CookBookOut])
+    def update_many(self, data: list[CookBookUpdate]):
+        updated_by_group_and_household: defaultdict[UUID4, defaultdict[UUID4, list[CookBookOut]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
+
+        for cookbook in data:
+            cb = self.mixins.update_one(cookbook, cookbook.id)
+            updated_by_group_and_household[cb.group_id][cb.household_id].append(cb)
+
+        all_updated: list[CookBookOut] = []
+        if updated_by_group_and_household:
+            for group_id, household_dict in updated_by_group_and_household.items():
+                for household_id, updated_cookbooks in household_dict.items():
+                    all_updated.extend(updated_cookbooks)
+                    self.publish_event(
+                        event_type=EventTypes.cookbook_updated,
+                        document_data=EventCookbookBulkData(
+                            operation=EventOperation.update, cookbook_ids=[cb.id for cb in updated_cookbooks]
+                        ),
+                        group_id=group_id,
+                        household_id=household_id,
+                    )
+
+        return all_updated
+
+    @router.get("/{item_id}", response_model=CookBookOut)
+    def get_one(self, item_id: UUID4 | str):
+        return self._get_group_cookbook(item_id)
+
+    @router.get("/{item_id}/pdf", response_class=FileResponse)
+    def get_one_as_pdf(self, item_id: UUID4 | str, include_images: bool = True):
+        cookbook = self._get_group_cookbook(item_id)
+        recipes = get_repositories(self.session, group_id=self.group_id, household_id=None).recipes
+        renderer = RecipePdfRenderer(self.translator, include_images=include_images)
+        return pdf_file_response(render_cookbook_pdf(renderer, recipes, cookbook), cookbook.slug or str(cookbook.id))
+
+    def _get_group_cookbook(self, item_id: UUID4 | str) -> CookBookOut:
+        if isinstance(item_id, UUID):
+            match_attr = "id"
+        else:
+            try:
+                UUID(item_id)
+                match_attr = "id"
+            except ValueError:
+                match_attr = "slug"
+
+        # Allow fetching other households' cookbooks
+        cookbook = self.group_cookbooks.get_one(item_id, match_attr)
+        if cookbook is None:
+            raise not_found()
+
+        return cookbook
+
+    @router.put("/{item_id}", response_model=CookBookOut)
+    def update_one(self, item_id: str, data: CookBookCreate):
+        cookbook = self.mixins.update_one(data, item_id)  # type: ignore
+        if cookbook:
+            self.publish_event(
+                event_type=EventTypes.cookbook_updated,
+                document_data=EventCookbookData(operation=EventOperation.update, cookbook_id=cookbook.id),
+                group_id=cookbook.group_id,
+                household_id=cookbook.household_id,
+                message=self.t("notifications.generic-updated", name=cookbook.name),
+            )
+
+        return cookbook
+
+    @router.delete("/{item_id}", response_model=CookBookOut)
+    def delete_one(self, item_id: str):
+        cookbook = self.mixins.delete_one(item_id)
+        if cookbook:
+            self.publish_event(
+                event_type=EventTypes.cookbook_deleted,
+                document_data=EventCookbookData(operation=EventOperation.delete, cookbook_id=cookbook.id),
+                group_id=cookbook.group_id,
+                household_id=cookbook.household_id,
+                message=self.t("notifications.generic-deleted", name=cookbook.name),
+            )
+
+        return cookbook

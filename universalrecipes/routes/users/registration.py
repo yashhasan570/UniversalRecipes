@@ -1,0 +1,43 @@
+from fastapi import APIRouter, Depends, status
+
+from universalrecipes.core.config import get_app_settings
+from universalrecipes.repos.all_repositories import get_repositories
+from universalrecipes.routes._base import BasePublicController, controller
+from universalrecipes.routes._base.permissions import forbidden
+from universalrecipes.schema.user.registration import UserRegistrationCreate
+from universalrecipes.schema.user.user import UserOut
+from universalrecipes.services.event_bus_service.event_bus_service import EventBusService
+from universalrecipes.services.event_bus_service.event_types import EventTypes, EventUserSignupData
+from universalrecipes.services.user_services.registration_service import RegistrationService
+
+router = APIRouter(prefix="/register")
+
+
+@controller(router)
+class RegistrationController(BasePublicController):
+    event_bus: EventBusService = Depends(EventBusService.as_dependency)
+
+    @router.post("", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+    def register_new_user(self, data: UserRegistrationCreate):
+        settings = get_app_settings()
+
+        if not settings.ALLOW_SIGNUP and data.group_token is None or data.group_token == "":
+            raise forbidden("User Registration is Disabled")
+
+        registration_service = RegistrationService(
+            self.logger,
+            get_repositories(self.session, group_id=None, household_id=None),
+            self.translator,
+        )
+
+        result = registration_service.register_user(data)
+
+        self.event_bus.dispatch(
+            integration_id="registration",
+            group_id=result.group_id,
+            household_id=result.household_id,
+            event_type=EventTypes.user_signup,
+            document_data=EventUserSignupData(username=result.username, email=result.email),
+        )
+
+        return result

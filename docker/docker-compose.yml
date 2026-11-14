@@ -1,0 +1,38 @@
+services:
+  universalrecipes:
+    container_name: universalrecipes
+    image: universalrecipes:dev
+    build:
+      context: ../
+      target: production
+      dockerfile: ./docker/Dockerfile
+    restart: always
+    volumes:
+      - universalrecipes-data:/app/data/
+    ports:
+      - 9091:9000
+    environment:
+      ALLOW_SIGNUP: "false"
+      LOG_LEVEL: "DEBUG"
+
+      DB_ENGINE: sqlite # Optional: 'sqlite', 'postgres'
+      # =====================================
+      # Postgres Config
+      POSTGRES_USER: universalrecipes
+      POSTGRES_PASSWORD: universalrecipes
+      POSTGRES_SERVER: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: universalrecipes
+      # =====================================
+      # Email Configuration
+      # SMTP_HOST=
+      # SMTP_PORT=587
+      # SMTP_FROM_NAME=UniversalRecipes
+      # SMTP_AUTH_STRATEGY=TLS # Options: 'TLS', 'SSL', 'NONE'
+      # SMTP_FROM_EMAIL=
+      # SMTP_USER=
+      # SMTP_PASSWORD=
+
+volumes:
+  universalrecipes-data:
+    driver: local
