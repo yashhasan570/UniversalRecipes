@@ -62,7 +62,6 @@ Contributions are what make the open source community such an amazing place to l
 
 If you are not a coder, you can still contribute financially. Financial contributions help me prioritize working on this project over others and helps me know that there is a real demand for project development.
 
-<a href="https://www.buymeacoffee.com/haykot" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-green.png" alt="Buy Me A Coffee" style="height: 30px !important;width: 107px !important;" ></a>
 
 ### Translations
 
@@ -74,33 +73,6 @@ For more information, check out the translation page on the [contributor's guide
 ## License
 Distributed under the AGPL License. See `LICENSE` for more information.
 
+## Contact
 
-## Sponsors
-
-Huge thanks to all the sponsors of this project on [Github Sponsors](https://github.com/sponsors/hay-kot) and Buy Me a Coffee. Without you, this project would surely not be possible.
-
-Thanks to Depot for providing build instances for our Docker image builds.
-
-[![Built with Depot](https://depot.dev/badges/built-with-depot.svg)](https://depot.dev?utm_source=UniversalRecipes)
-
-
-
-<!-- MARKDOWN LINKS & IMAGES -->
-<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/universalrecipes-recipes/universalrecipes.svg?style=flat-square
-[docker-pull]: https://img.shields.io/docker/pulls/hkotel/universalrecipes?style=flat-square
-[docker-url]: https://hub.docker.com/r/hkotel/universalrecipes
-[ghcr-pulls]: https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fipitio.github.io%2Fbackage%2Funiversalrecipes-recipes%2Funiversalrecipes%2Funiversalrecipes.json&query=%24.downloads&style=flat-square&label=ghcr%20pulls
-[ghcr-url]: https://github.com/universalrecipes-recipes/universalrecipes/pkgs/container/universalrecipes
-[contributors-url]: https://github.com/universalrecipes-recipes/universalrecipes/graphs/contributors
-[stars-shield]: https://img.shields.io/github/stars/universalrecipes-recipes/universalrecipes.svg?style=flat-square
-[stars-url]: https://github.com/universalrecipes-recipes/universalrecipes/stargazers
-[issues-shield]: https://img.shields.io/github/issues/universalrecipes-recipes/universalrecipes.svg?style=flat-square
-[issues-url]: https://github.com/universalrecipes-recipes/universalrecipes/issues
-[latest-release-shield]: https://img.shields.io/github/v/release/universalrecipes-recipes/universalrecipes?style=flat-square&label=latest%20release
-[latest-release-url]: https://github.com/universalrecipes-recipes/universalrecipes/releases
-[license-shield]: https://img.shields.io/github/license/universalrecipes-recipes/universalrecipes.svg?style=flat-square
-[license-url]: https://github.com/universalrecipes-recipes/universalrecipes/blob/universalrecipes-next/LICENSE
-[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=flat-square&logo=linkedin&colorB=555
-[linkedin-url]: https://linkedin.com/in/hay-kot
-[product-screenshot]: docs/docs/assets/img/home_screenshot.png
+Questions, problem reports or feedback? Reach us on Telegram: [@johnconstantine570](https://t.me/johnconstantine570)
